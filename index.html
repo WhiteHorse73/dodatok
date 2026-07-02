@@ -555,7 +555,7 @@ const CONFIG = {
   scanMode: 'both',                    // 'hardware' | 'camera' | 'both' — спосіб сканування
   // магазин за замовчуванням (можна змінювати в «Налаштуваннях»):
   defaultStores: [
-    { code:'000188', name:'Магазин 000188' }
+    { code:'code:'00-000018', name:'Головний'', name:'Магазин 000188' }
   ],
   idleResetMs: 30000,                  // авто-повернення на головну через 30 c після сканування
   requestTimeoutMs: 6000
@@ -927,7 +927,7 @@ function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ curren
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
 const APP_VERSION = '2026-07-02 · v23';
-const SETTINGS_KEY = 'pricechecker.settings';
+const SETTINGS_KEY = 'pricechecker.settings.v2';
 let connOk = true;
 
 function escapeHtml(s){ return String(s).replace(/[&<>"'`]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'}[c])); }
