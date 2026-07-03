@@ -2,7 +2,6 @@
 const VERSION = 'pc-v28';
 const CORE = ['./', './index.html', './manifest.webmanifest'];
 
-
 self.addEventListener('install', e => {
   self.skipWaiting();                                   // новий SW активується одразу
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE).catch(() => {})));
