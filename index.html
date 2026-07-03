@@ -1180,7 +1180,7 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', async ()=>{
     try{
       const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache:'none' });
-      reg.update();                       // примусова перевірка оновлень при запуску
+      reg.update();                      // примусова перевірка оновлень при запуску
       let refreshed = false;
       navigator.serviceWorker.addEventListener('controllerchange', ()=>{
         if(refreshed) return; refreshed = true; location.reload();   // одне перезавантаження на свіжу версію
