@@ -38,12 +38,12 @@
 
   /* ---- Верхня смужка ---- */
   .topbar{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; color:var(--ink); }
-  .brand{ display:flex; align-items:center; gap:9px; font-weight:800; letter-spacing:.05em; font-size:15px; }
+  .brand{ display:none; align-items:center; gap:9px; font-weight:800; letter-spacing:.05em; font-size:15px; }
   .brand .dot{ width:11px;height:11px;border-radius:50%;background:var(--accent); }
   .tb-back{ background:var(--soft); border:none; color:var(--ink); font:inherit; font-weight:800; font-size:14px; border-radius:10px; padding:8px 13px 8px 10px; cursor:pointer; display:flex; align-items:center; gap:5px; }
   .tb-back:active{ background:#e7e7ea; }
   .tb-back svg{ width:18px; height:18px; }
-  .meta{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .meta{ display:none; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
   .meta .pulse{ width:8px;height:8px;border-radius:50%;background:var(--ink); animation:pulse 2s infinite; }
   .meta.off .pulse{ background:#c8c8cc; animation:none; }
   @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(0,0,0,.35)} 70%{box-shadow:0 0 0 8px rgba(0,0,0,0)} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0)} }
@@ -768,8 +768,7 @@ let idleTimer=null,current=null,colorIndex=0,currentScreen='idle';
 function show(v){ currentScreen=v; $('idle').style.display=v==='idle'?'flex':'none'; $('product').classList.toggle('show',v==='product'); $('notfound').classList.toggle('show',v==='notfound'); updateNav(v); keepScanFocus(); }
 function updateNav(v){
   const onProduct=(v==='product'||v==='notfound');
-  const brand=document.querySelector('.brand'); if(brand) brand.style.display=onProduct?'none':'';
-  const back=$('btnBack'); if(back) back.style.display=onProduct?'':'none';
+  const topbar=document.querySelector('.topbar'); if(topbar) topbar.style.display=onProduct?'none':'';
 }
 function anyModalOpen(){ return $('scanner').classList.contains('show')||$('settings').classList.contains('show')||$('login').classList.contains('show'); }
 function focusHome(){ const el=$('homeCode'); if(el && currentScreen==='idle' && !anyModalOpen()) setTimeout(()=>{ if(currentScreen==='idle'&&!anyModalOpen()) el.focus(); },40); }
@@ -909,7 +908,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-02 · v29';
+const APP_VERSION = '2026-07-06 · v30';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
