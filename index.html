@@ -6,7 +6,6 @@
 <title>Прайс-чекер</title>
 <meta name="description" content="Перевірка ціни, знижок, терміну акції та наявності товару за штрихкодом або QR-кодом.">
 
-     
 <!-- PWA / встановлення на iPhone та Android -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
@@ -44,7 +43,7 @@
   .tb-back{ background:var(--soft); border:none; color:var(--ink); font:inherit; font-weight:800; font-size:14px; border-radius:10px; padding:8px 13px 8px 10px; cursor:pointer; display:flex; align-items:center; gap:5px; }
   .tb-back:active{ background:#e7e7ea; }
   .tb-back svg{ width:18px; height:18px; }
-  .meta{ display:none; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .meta{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
   .meta .pulse{ width:8px;height:8px;border-radius:50%;background:var(--ink); animation:pulse 2s infinite; }
   .meta.off .pulse{ background:#c8c8cc; animation:none; }
   @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(0,0,0,.35)} 70%{box-shadow:0 0 0 8px rgba(0,0,0,0)} 100%{box-shadow:0 0 0 0 rgba(0,0,0,0)} }
@@ -143,6 +142,7 @@
 
   .avail{ flex:0 0 auto; background:transparent; padding:9px 6px; display:flex; flex-direction:column; gap:7px; }
   .avail-title{ display:none; font-weight:800; font-size:14px; color:var(--ink); text-align:center; }
+  #availBody{ display:flex; flex-direction:column; gap:10px; }
   .avail .grp{ display:flex; align-items:center; gap:9px; }
   .avail .tag{ font-size:11px; font-weight:800; padding:4px 9px; border-radius:7px; flex:0 0 auto; min-width:64px; text-align:center; }
   .avail .tag.hall{ background:var(--ink); color:#fff; } .avail .tag.stock{ background:var(--soft); color:var(--ink); }
@@ -958,7 +958,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v31';
+const APP_VERSION = '2026-07-06 · v32';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -1006,9 +1006,12 @@ function activeStoreCode(){ return S.activeStore||''; }
 function activeStoreName(){ const x=(S.stores||[]).find(s=>s.code===S.activeStore); return x?x.name:''; }
 
 function updateMeta(){
-  let label = connOk ? 'База 1С' : 'Немає зв\'язку';
   const store=activeStoreName();
-  $('connText').textContent = `${label}${store?' · '+store:''} · ${APP_VERSION}`;
+  const parts=[];
+  if(!connOk) parts.push('Немає зв\'язку');
+  if(store) parts.push(store);
+  parts.push(APP_VERSION);
+  $('connText').textContent = parts.join(' · ');
 }
 function setConn(ok){ connOk=ok; $('meta').classList.toggle('off',!ok); updateMeta(); }
 
