@@ -697,6 +697,34 @@ async function nativeOrFetch(url, opt){
   return { ok: resp.ok, status: resp.status, text };
 }
 
+/* Фото товару з 1С теж вимагає Basic-авторизації, а звичайний <img src> її не надсилає.
+   У НАТИВНОМУ додатку тягнемо байти через CapacitorHttp (з тим самим заголовком Authorization,
+   в обхід CORS) і показуємо як data-URI. У браузері обійти CORS нема як — лишаємо URL як є
+   (працює лише якщо сервер сам дозволяє анонімний доступ до фото). */
+const photoCache=new Map();
+async function fetchAuthImage(url){
+  if(!url || !/^https?:/i.test(url)) return url;             // data:/base64 вже готові — не займаємо
+  if(photoCache.has(url)) return photoCache.get(url);
+  const cap=window.Capacitor;
+  const isNative=cap && ((cap.isNativePlatform && cap.isNativePlatform()) || cap.platform==='android' || cap.platform==='ios');
+  const Http=cap && cap.Plugins && (cap.Plugins.CapacitorHttp || cap.Plugins.Http);
+  if(!(isNative && Http)) return url;                        // немає нативного шару — лишаємо як є
+  const headers={};
+  if(CONFIG.auth.user) headers['Authorization']='Basic '+b64utf8(`${CONFIG.auth.user}:${CONFIG.auth.password}`);
+  let out='';
+  try{
+    const res=await Http.request({ method:'GET', url, headers, responseType:'blob',
+      connectTimeout:CONFIG.requestTimeoutMs, readTimeout:CONFIG.requestTimeoutMs });
+    if(res.status>=200 && res.status<300 && res.data){
+      const hk=res.headers && Object.keys(res.headers).find(k=>k.toLowerCase()==='content-type');
+      const ct=(hk?res.headers[hk]:'image/jpeg').split(';')[0]||'image/jpeg';
+      out=`data:${ct};base64,${res.data}`;
+    }
+  }catch(e){ out=''; }
+  photoCache.set(url,out);
+  return out;
+}
+
 /* запит до 1С (mode:'live') */
 async function fetch1C(code){
   const base=CONFIG.baseUrl.replace(/\/+$/,'');
@@ -780,10 +808,13 @@ function keepScanFocus(){
   if(el) setTimeout(()=>{ if(!anyModalOpen() && CONFIG.scanMode!=='camera') el.focus(); },40);
 }
 
+let photoReqId=0;
 function render(p){
   current=p;
   const pw=$('photoWrap');
-  pw.innerHTML = p.photo?`<img src="${esc(p.photo)}" alt="">`:`<span class="ph-empty">Фото товару</span>`;
+  const myReq=++photoReqId;
+  pw.innerHTML = `<div class="photo-inner" id="photoInner"><span class="ph-empty">Фото товару</span></div>`;
+  loadMainPhoto(p.photo, myReq);
 
   $('pName').textContent=p.name||'—';
   const b=$('pBrand'); if(p.brand){ b.style.display=''; b.textContent=p.brand; } else b.style.display='none';
@@ -855,6 +886,16 @@ function render(p){
   }
   show('product'); resetIdle();
 }
+/* Підвантажуємо фото окремо (асинхронно, з авторизацією) — щоб не блокувати показ картки товару.
+   reqId рятує від «застарілого» фото, якщо поки воно вантажилось, відсканували інший товар. */
+function loadMainPhoto(url, reqId){
+  if(!url) return;
+  fetchAuthImage(url).then(src=>{
+    if(reqId!==photoReqId) return;
+    const el=$('photoInner');
+    if(el && src) el.innerHTML=`<img src="${esc(src)}" alt="">`;
+  });
+}
 const sizesHtml=(arr,cls)=> (arr&&arr.length)? arr.map(s=>`<span class="sz ${cls}">${esc(s)}</span>`).join('') : `<span class="none">немає</span>`;
 function renderColors(p){
   const strip=$('colorStrip'), colors=p.colors||[];
@@ -868,14 +909,22 @@ function renderColors(p){
   let start = Math.max(0, Math.min(colorIndex-2, colors.length-PER)); if(start<0) start=0;
   const slice = colors.slice(start, start+PER);
   strip.innerHTML = slice.map((c,i)=>{ const idx=start+i;
-    return `<div class="swatch ${idx===colorIndex?'active':''}" data-i="${idx}"><div class="img">${c.photo?`<img src="${esc(c.photo)}">`:''}</div><span class="nm">${esc(c.name)}</span></div>`;
+    return `<div class="swatch ${idx===colorIndex?'active':''}" data-i="${idx}"><div class="img" id="swImg${idx}"></div><span class="nm">${esc(c.name)}</span></div>`;
   }).join('');
+  slice.forEach((c,i)=>loadSwatchPhoto(start+i, c.photo));
   strip.querySelectorAll('.swatch').forEach(s=>s.onclick=()=>{ colorIndex=+s.dataset.i; renderColors(current); resetIdle(); });
   $('colPrev').disabled = colorIndex<=0;
   $('colNext').disabled = colorIndex>=colors.length-1;
   // рядок «Розміри:» (показується у горизонтальному режимі)
   const all=[...new Set([...(p.hall||[]),...(p.stock||[])])];
   $('colorSizes').textContent = all.length? ('Розміри: '+all.join(', ')) : '';
+}
+function loadSwatchPhoto(idx, url){
+  if(!url) return;
+  fetchAuthImage(url).then(src=>{
+    const el=$('swImg'+idx);
+    if(el && src) el.innerHTML=`<img src="${esc(src)}">`;
+  });
 }
 $('colPrev').onclick=()=>{ if(current){ colorIndex=Math.max(0,colorIndex-1); renderColors(current); resetIdle(); } };
 $('colNext').onclick=()=>{ if(current){ colorIndex++; renderColors(current); resetIdle(); } };
@@ -908,7 +957,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v30';
+const APP_VERSION = '2026-07-06 · v31';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
