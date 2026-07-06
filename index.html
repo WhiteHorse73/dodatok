@@ -210,7 +210,7 @@
   .manual .ok{ background:var(--accent); color:#fff; } .manual .cancel{ background:var(--soft); color:var(--ink); }
 
   /* ---- Кнопка налаштувань у шапці ---- */
-  .tb-right{ display:flex; align-items:center; gap:12px; }
+  .tb-right{ display:flex; align-items:center; gap:12px; flex:1 1 auto; justify-content:space-between; }
   .gear{ background:var(--soft); border:none; color:var(--ink); width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto; }
   .gear:active{ background:#e7e7ea; }
   .gear svg{ width:19px; height:19px; }
@@ -400,7 +400,7 @@
   <div class="idle" id="idle">
     <div class="idle-head">
       <h1>Перевірка ціни</h1>
-      <p>Піднесіть штрихкод до сканера або введіть код товару</p>
+      <p>Піднесіть штрихкод до сканера або введіть вручну</p>
     </div>
     <div class="code-entry">
       <input id="homeCode" inputmode="text" enterkeyhint="search" autocomplete="off" placeholder="Код / штрихкод товару">
@@ -498,13 +498,6 @@
     </div>
 
     <div class="set-sec">
-      <div class="set-lbl">Підключення до 1С</div>
-      <input id="baseUrlInput" class="set-input" placeholder="http://сервер:порт/база/hs/сервіс" autocomplete="off">
-      <input id="authUserInput" class="set-input" placeholder="Логін до 1С (якщо потрібен)" autocomplete="off">
-      <input id="authPassInput" class="set-input" type="password" placeholder="Пароль до 1С (якщо потрібен)" autocomplete="new-password">
-    </div>
-
-    <div class="set-sec">
       <div class="set-lbl">Доступ до налаштувань</div>
       <div class="set-sub">Логін і пароль, щоб відкривати цей екран.</div>
       <input id="admUserInput" class="set-input" placeholder="Логін" autocomplete="off">
@@ -537,22 +530,23 @@
    ================================================================= */
 const CONFIG = {
   mode: 'live',                        // завжди жива база 1С (демо прибрано)
-  // Реальний HTTP-сервіс 1С (база KT3Test, сервіс pricechecker, порт 1840). УВАГА: тільки http, не https!
-  baseUrl: 'http://sport.ditek.kiev.ua:1840/KT3Test/hs/pricechecker',
+  // Реальний HTTP-сервіс 1С (база SCService, сервіс pricechecker, порт 1840). УВАГА: тільки http, не https!
+  // Вшито в код навмисно — адресу/логін/пароль НЕ можна змінити з екрана «Налаштування».
+  baseUrl: 'http://sport.ditek.kiev.ua:1840/SCService/hs/pricechecker',
   // --- параметри запиту (підлаштувати під опис 1С, коли надішлють) ---
   productPath: '/GetProduct',          // метод отримання товару (з документації)
   codeParam:   'barcode',              // назва параметра зі штрихкодом (уточнити: 'barcode'/'code'/'ctCode')
   storeParam:  'store',                // параметр, що ідентифікує магазин (= «користувача»). Уточнити в 1С: 'store'/'userUID'
   method:      'GET',                  // 'GET' або 'POST'
   // ------------------------------------------------------------------
-  auth: { user:'Білоконь Павло', password:'123456' }, // Basic-авторизація сервісу 1С (дефолт; можна змінити в «Налаштуваннях»)
+  auth: { user:'ПрайсЧекер', password:'sH6idUzmG8' }, // Basic-авторизація сервісу 1С — вшито, без можливості зміни в «Налаштуваннях»
   admin: { user:'admin', pass:'admin' },// логін/пароль для входу в «Налаштування» (можна змінити там само)
   scanMode: 'both',                    // 'hardware' | 'camera' | 'both' — спосіб сканування
   // магазин за замовчуванням (можна змінювати в «Налаштуваннях»):
   defaultStores: [
     { code:'000188', name:'Магазин 000188' }
   ],
-  idleResetMs: 60000,                  // авто-повернення на головну через 30 c після сканування
+  idleResetMs: 60000,                  // авто-повернення на головну через 60 c після сканування
   requestTimeoutMs: 60000              // час очікування відповіді сервера — 1 хвилина
 };
 
@@ -958,7 +952,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v32';
+const APP_VERSION = '2026-07-06 · v34';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -968,9 +962,10 @@ function loadSettings(){
   let s={}; try{ s=JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}; }catch(e){}
   return {
     mode:        'live',
-    baseUrl:     s.baseUrl || CONFIG.baseUrl,
-    authUser:    s.authUser || CONFIG.auth.user || '',
-    authPass:    (s.authPass!=null) ? s.authPass : (CONFIG.auth.password||''),
+    // Адреса/логін/пароль до 1С — вшиті в CONFIG, зі старих налаштувань пристрою НЕ читаємо і змінити їх не можна.
+    baseUrl:     CONFIG.baseUrl,
+    authUser:    CONFIG.auth.user || '',
+    authPass:    CONFIG.auth.password || '',
     adminUser:   s.adminUser || CONFIG.admin.user,
     adminPass:   (s.adminPass!=null) ? s.adminPass : CONFIG.admin.pass,
     scanMode:    s.scanMode || CONFIG.scanMode,
@@ -1054,9 +1049,6 @@ $('loginPass').addEventListener('keydown',e=>{ if(e.key==='Enter') tryLogin(); }
 
 function openSettings(){
   S=loadSettings();
-  $('baseUrlInput').value=S.baseUrl||'';
-  $('authUserInput').value=S.authUser||'';
-  $('authPassInput').value=S.authPass||'';
   $('admUserInput').value=S.adminUser||'';
   $('admPassInput').value=S.adminPass||'';
   renderStoreList(); renderModeSeg(); renderScanSeg();
@@ -1073,9 +1065,6 @@ $('storeAdd').onclick=()=>{
 $('setClose').onclick=closeSettings;
 $('setCancel').onclick=closeSettings;
 $('setSave').onclick=()=>{
-  S.baseUrl=($('baseUrlInput').value||'').trim()||CONFIG.baseUrl;
-  S.authUser=($('authUserInput').value||'').trim();
-  S.authPass=$('authPassInput').value||'';
   S.adminUser=($('admUserInput').value||'').trim()||CONFIG.admin.user;
   S.adminPass=$('admPassInput').value||'';
   if(!S.activeStore && S.stores&&S.stores[0]) S.activeStore=S.stores[0].code;
