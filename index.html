@@ -96,7 +96,7 @@
 
   .info-card{ flex:0 0 auto; background:transparent; padding:9px 6px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--line); }
   .p-name{ font-size:18px; font-weight:800; line-height:1.15; }
-  .p-brand{ font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-top:-3px; }
+  .p-brand{ font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-top:3px; }
   .row{ display:flex; gap:7px; font-size:13.5px; line-height:1.25; }
   .row .k{ color:var(--muted); flex:0 0 auto; }
   .row .v{ color:var(--ink); font-weight:600; }
@@ -924,10 +924,22 @@ function loadSwatchPhoto(idx, url){
 $('colPrev').onclick=()=>{ if(current){ colorIndex=Math.max(0,colorIndex-1); renderColors(current); resetIdle(); } };
 $('colNext').onclick=()=>{ if(current){ colorIndex++; renderColors(current); resetIdle(); } };
 
+// товар знайдено, але без розмірів «в залі»/«на складі» і без залишку — по факту його нема в наявності
+function isUnavailable(p){
+  const hall=p.hall||[], stock=p.stock||[];
+  return hall.length===0 && stock.length===0 && (p.balance==null || p.balance==='');
+}
 async function lookup(code){
   $('nfCode').textContent=code;
   try{
     const p=await resolve(code);
+    if(p && isUnavailable(p)){
+      $('nfTitle').textContent='Немає в наявності';
+      $('nfSub').textContent='Зверніться до консультанта для уточнення інформації';
+      $('nfReason').style.display='none';
+      show('notfound'); resetIdle();
+      return;
+    }
     if(p){ render(p); return; }
     // сервер відповів, але товару нема
     $('nfTitle').textContent='Товар не знайдено';
@@ -952,7 +964,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v34';
+const APP_VERSION = '2026-07-06 · v35';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
