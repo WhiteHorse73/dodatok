@@ -1026,7 +1026,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v37';
+const APP_VERSION = '2026-07-08 · v38';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -1284,6 +1284,14 @@ $('scanCatch').addEventListener('blur',()=>{
   // Якщо фокус пішов на homeCode — це користувач сам тапнув у поле ручного вводу, не заважаємо клавіатурі.
   setTimeout(()=>{ if(!anyModalOpen() && (document.activeElement&&document.activeElement.id)!=='homeCode') keepScanFocus(); },60);
 });
+
+/* Термінали БЕЗ клавіатурної емуляції (напр. SEUIC KP370) — скан приходить не «друком»,
+   а нативним Android-Intent, який ловить MainActivity.java і викликає цю функцію напряму. */
+window.onNativeScan = function(code){
+  const v=(code||'').trim();
+  if(!v || anyModalOpen()) return;
+  lookup(v);
+};
 
 /* фізичний сканер-«клавіатура» — запасний шлях, якщо фокус десь загубився */
 let buf='',bufT=null;
