@@ -6,7 +6,6 @@
 <title>Прайс-чекер</title>
 <meta name="description" content="Перевірка ціни, знижок, терміну акції та наявності товару за штрихкодом або QR-кодом.">
 
-     
 <!-- PWA / встановлення на iPhone та Android -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#ffffff">
@@ -161,6 +160,11 @@
   .notfound code{ background:var(--soft); padding:3px 9px; border-radius:6px; color:var(--ink); font-size:14px; }
   .notfound .nf-sub{ color:var(--muted); font-size:15px; }
   .notfound .nf-reason{ margin-top:8px; max-width:460px; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:10px 13px; color:var(--ink); font-size:13px; line-height:1.4; white-space:pre-line; text-align:left; overflow-wrap:anywhere; }
+
+  /* ---- Реклама на головному екрані ---- */
+  .ad-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:none; align-items:center; justify-content:center; cursor:pointer; }
+  .ad-overlay.show{ display:flex; }
+  .ad-overlay img{ width:100%; height:100%; object-fit:contain; }
 
   /* ---- Сканер (модал) ---- */
   .scanner{ position:fixed; inset:0; background:#000; z-index:100; display:none; overflow:hidden; }
@@ -467,6 +471,12 @@
 
 </div>
 
+<!-- Реклама на головному екрані: показується поверх, поки чекаємо на сканування.
+     Сканування (апаратне) працює й під нею — прихований scanCatch/homeCode лишається у фокусі. -->
+<div class="ad-overlay" id="adOverlay">
+  <img id="adImg" alt="">
+</div>
+
 <!-- Сканер -->
 <div class="scanner" id="scanner">
   <div class="shead"><span class="t">Наведіть на штрихкод</span><button class="close" id="scanClose">✕</button></div>
@@ -496,6 +506,13 @@
         <button data-scan="camera">Камера</button>
         <button data-scan="both">Обидва</button>
       </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-lbl">Реклама на головному екрані</div>
+      <div class="set-sub">Посилання на фото (URL). Показуються по черзі, поки додаток чекає на сканування.</div>
+      <div id="adList" class="store-list"></div>
+      <button class="set-add" id="adAdd">+ Додати рекламу</button>
     </div>
 
     <div class="set-sec">
@@ -548,7 +565,11 @@ const CONFIG = {
     { code:'000188', name:'Магазин 000188' }
   ],
   idleResetMs: 60000,                  // авто-повернення на головну через 60 c після сканування
-  requestTimeoutMs: 60000              // час очікування відповіді сервера — 1 хвилина
+  requestTimeoutMs: 60000,             // час очікування відповіді сервера — 1 хвилина
+  // Реклама на головному екрані (можна додавати/видаляти в «Налаштуваннях»): порожній список — рекламу не показуємо.
+  ads: [],
+  adMinMs: 15000,                      // мінімальний час показу головної/реклами перед перемиканням
+  adMaxMs: 20000                       // максимальний час показу головної/реклами перед перемиканням
 };
 
 /* ----- демо-зображення ----- */
@@ -789,7 +810,14 @@ const fmtMoney=n=>{ const x=Number(n)||0; return x.toLocaleString('uk-UA',{ mini
 const rowShow=(id,val)=>{ const el=$(id); if(!el) return; el.style.display=(val!=null&&val!=='')?'':'none'; };
 let idleTimer=null,current=null,colorIndex=0,currentScreen='idle';
 
-function show(v){ currentScreen=v; $('idle').style.display=v==='idle'?'flex':'none'; $('product').classList.toggle('show',v==='product'); $('notfound').classList.toggle('show',v==='notfound'); updateNav(v); keepScanFocus(); }
+function show(v){
+  currentScreen=v;
+  $('idle').style.display=v==='idle'?'flex':'none';
+  $('product').classList.toggle('show',v==='product');
+  $('notfound').classList.toggle('show',v==='notfound');
+  updateNav(v); keepScanFocus();
+  if(v==='idle') restartAdCycle(); else stopAdCycle();
+}
 function updateNav(v){
   const onProduct=(v==='product'||v==='notfound');
   const topbar=document.querySelector('.topbar'); if(topbar) topbar.style.display=onProduct?'none':'';
@@ -803,6 +831,28 @@ function keepScanFocus(){
   const el = (currentScreen==='idle') ? $('homeCode') : $('scanCatch');
   if(el) setTimeout(()=>{ if(!anyModalOpen() && CONFIG.scanMode!=='camera') el.focus(); },40);
 }
+
+/* Реклама на головному екрані: поки чекаємо сканування, по черзі показуємо фото поверх екрана.
+   Апаратний сканер друкує в приховане поле незалежно від того, що видно на екрані — тому
+   сканування працює й під рекламою; сканування одразу ховає рекламу (через show()). */
+let adTimer=null, adIndex=0;
+function randAdDelay(){ return CONFIG.adMinMs + Math.random()*(CONFIG.adMaxMs-CONFIG.adMinMs); }
+function stopAdCycle(){ clearTimeout(adTimer); $('adOverlay').classList.remove('show'); }
+function restartAdCycle(){ stopAdCycle(); scheduleAd(); }
+function scheduleAd(){
+  clearTimeout(adTimer);
+  if(!(CONFIG.ads||[]).length) return;               // немає реклами — нічого не плануємо
+  adTimer=setTimeout(showAd, randAdDelay());
+}
+function showAd(){
+  const ads=CONFIG.ads||[];
+  if(currentScreen!=='idle' || anyModalOpen() || !ads.length){ scheduleAd(); return; }
+  $('adImg').src=ads[adIndex % ads.length]; adIndex++;
+  $('adOverlay').classList.add('show');
+  adTimer=setTimeout(hideAd, randAdDelay());
+}
+function hideAd(){ $('adOverlay').classList.remove('show'); scheduleAd(); }
+$('adOverlay').onclick=()=>{ hideAd(); };
 
 let photoReqId=0;
 function render(p){
@@ -965,7 +1015,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '';
+const APP_VERSION = '2026-07-06 · v36';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -983,7 +1033,8 @@ function loadSettings(){
     adminPass:   (s.adminPass!=null) ? s.adminPass : CONFIG.admin.pass,
     scanMode:    s.scanMode || CONFIG.scanMode,
     stores:      (Array.isArray(s.stores)&&s.stores.length) ? s.stores : CONFIG.defaultStores.slice(),
-    activeStore: s.activeStore || (CONFIG.defaultStores[0]&&CONFIG.defaultStores[0].code) || ''
+    activeStore: s.activeStore || (CONFIG.defaultStores[0]&&CONFIG.defaultStores[0].code) || '',
+    ads:         Array.isArray(s.ads) ? s.ads : CONFIG.ads.slice()
   };
 }
 let S = loadSettings();
@@ -1002,7 +1053,7 @@ let S = loadSettings();
   if(S.stores.length!==before){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(S)); }catch(e){} }
 })();
 function persist(){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(S)); }catch(e){} }
-function applySettings(){ CONFIG.mode='live'; CONFIG.baseUrl=S.baseUrl; CONFIG.auth={ user:S.authUser||'', password:S.authPass||'' }; CONFIG.scanMode=S.scanMode; updateScanUI(); updateNav(currentScreen); updateMeta(); }
+function applySettings(){ CONFIG.mode='live'; CONFIG.baseUrl=S.baseUrl; CONFIG.auth={ user:S.authUser||'', password:S.authPass||'' }; CONFIG.scanMode=S.scanMode; CONFIG.ads=S.ads||[]; updateScanUI(); updateNav(currentScreen); updateMeta(); restartAdCycle(); }
 function updateScanUI(){
   const m=CONFIG.scanMode||'both';
   const showCam=(m!=='hardware');   // кнопка камери — у режимах 'camera' та 'both'
@@ -1039,6 +1090,18 @@ function renderStoreList(){
     renderStoreList();
   });
 }
+function renderAdList(){
+  const wrap=$('adList');
+  wrap.innerHTML = (S.ads||[]).map((url,i)=>`
+    <label class="store-item">
+      <span class="si-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(url)}</span>
+      <button type="button" class="si-del" data-i="${i}" title="Видалити">✕</button>
+    </label>`).join('') || `<div class="set-sub">Немає реклами — додайте хоча б одне посилання на фото.</div>`;
+  wrap.querySelectorAll('.si-del').forEach(btn=>btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation();
+    S.ads=(S.ads||[]).filter((_,i)=>i!==Number(btn.dataset.i));
+    renderAdList();
+  });
+}
 function renderModeSeg(){ /* перемикач режиму прибрано — завжди 1С */ }
 function renderScanSeg(){ document.querySelectorAll('#scanSeg button').forEach(b=>b.classList.toggle('on', b.dataset.scan===S.scanMode)); }
 
@@ -1064,7 +1127,7 @@ function openSettings(){
   S=loadSettings();
   $('admUserInput').value=S.adminUser||'';
   $('admPassInput').value=S.adminPass||'';
-  renderStoreList(); renderModeSeg(); renderScanSeg();
+  renderStoreList(); renderModeSeg(); renderScanSeg(); renderAdList();
   $('settings').classList.add('show');
 }
 function closeSettings(){ $('settings').classList.remove('show'); S=loadSettings(); applySettings(); keepScanFocus(); }
@@ -1074,6 +1137,10 @@ $('storeAdd').onclick=()=>{
   const code=(prompt('ID / код магазину (як у 1С):')||'').trim(); if(!code) return;
   if((S.stores||[]).some(x=>x.code===code)){ alert('Магазин з таким ID уже існує.'); return; }
   S.stores=S.stores||[]; S.stores.push({code,name}); S.activeStore=code; renderStoreList();
+};
+$('adAdd').onclick=()=>{
+  const url=(prompt('Посилання (URL) на фото реклами:')||'').trim(); if(!url) return;
+  S.ads=S.ads||[]; S.ads.push(url); renderAdList();
 };
 $('setClose').onclick=closeSettings;
 $('setCancel').onclick=closeSettings;
