@@ -62,8 +62,8 @@
   .idle{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--ink); gap:18px; padding:20px 20px 78px; position:relative; }
   .idle .scanicon{ width:104px;height:104px;border-radius:24px;border:3px solid var(--accent); color:var(--accent); display:flex;align-items:center;justify-content:center; }
   .idle .scanicon svg{ width:54px;height:54px; }
-  .idle-head h1{ font-size:26px; font-weight:800; }
-  .idle .idle-head p, .idle p{ font-size:16px; color:var(--muted); max-width:460px; line-height:1.5; }
+  .idle-head h1{ font-size:29px; font-weight:800; }
+  .idle .idle-head p, .idle p{ font-size:18px; color:var(--muted); max-width:460px; line-height:1.5; }
   .code-entry{ display:flex; gap:8px; width:100%; max-width:440px; }
   .code-entry input{ flex:1; min-width:0; font:inherit; font-size:18px; padding:14px 16px; border-radius:13px; border:1.5px solid var(--line); background:#fff; color:var(--ink); text-align:center; }
   .code-entry input:focus{ outline:none; border-color:var(--ink); }
@@ -75,7 +75,8 @@
   /* стрілка вниз — показує на сканер унизу екрана */
   .scan-down{ position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--accent); pointer-events:none; }
   .scan-down .cap{ font-size:12px; font-weight:800; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
-  .scan-down svg{ width:50px; height:50px; }
+  .scan-down svg{ width:50px; height:50px; animation:scanBob 1.4s ease-in-out infinite; }
+  @keyframes scanBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
   .demo-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px; }
   .demo-chips .dtag{ width:100%; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.12em; }
   .demo-chips button{ border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; font-size:13px; font-weight:700; border-radius:999px; padding:8px 14px; cursor:pointer; }
@@ -162,8 +163,9 @@
   .notfound .nf-reason{ margin-top:8px; max-width:460px; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:10px 13px; color:var(--ink); font-size:13px; line-height:1.4; white-space:pre-line; text-align:left; overflow-wrap:anywhere; }
 
   /* ---- Реклама на головному екрані ---- */
-  .ad-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:none; align-items:center; justify-content:center; cursor:pointer; }
-  .ad-overlay.show{ display:flex; }
+  .ad-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:flex; align-items:center; justify-content:center; cursor:pointer;
+               opacity:0; pointer-events:none; transition:opacity .35s ease; }
+  .ad-overlay.show{ opacity:1; pointer-events:auto; }
   .ad-overlay img{ width:100%; height:100%; object-fit:contain; }
 
   /* ---- Сканер (модал) ---- */
@@ -366,8 +368,8 @@
     .idle{ gap:clamp(6px,1.6vh,16px); padding:clamp(8px,2vh,20px) 16px; justify-content:center; }
     .idle .scanicon{ width:clamp(52px,13vh,96px); height:clamp(52px,13vh,96px); border-radius:18px; border-width:2px; }
     .idle .scanicon svg{ width:50%; height:50%; }
-    .idle h1{ font-size:clamp(16px,3.4vh,26px); }
-    .idle p{ font-size:clamp(12px,2.2vh,16px); max-width:none; }
+    .idle h1{ font-size:clamp(18px,3.8vh,29px); }
+    .idle p{ font-size:clamp(13px,2.5vh,18px); max-width:none; }
     .demo-chips{ gap:6px; margin-top:0; }
     .demo-chips .dtag{ font-size:10px; }
     .demo-chips button{ font-size:12px; padding:6px 11px; }
@@ -472,7 +474,7 @@
 </div>
 
 <!-- Реклама на головному екрані: показується поверх, поки чекаємо на сканування.
-     Сканування (апаратне) працює й під нею — прихований scanCatch/homeCode лишається у фокусі. -->
+     Сканування (апаратне) працює й під нею — прихований scanCatch лишається у фокусі. -->
 <div class="ad-overlay" id="adOverlay">
   <img id="adImg" alt="">
 </div>
@@ -823,21 +825,24 @@ function updateNav(v){
   const topbar=document.querySelector('.topbar'); if(topbar) topbar.style.display=onProduct?'none':'';
 }
 function anyModalOpen(){ return $('scanner').classList.contains('show')||$('settings').classList.contains('show')||$('login').classList.contains('show'); }
-function focusHome(){ const el=$('homeCode'); if(el && currentScreen==='idle' && !anyModalOpen()) setTimeout(()=>{ if(currentScreen==='idle'&&!anyModalOpen()) el.focus(); },40); }
-/* Тримаємо фокус там, куди має «друкувати» апаратний сканер:
-   на головній — видиме поле homeCode, на картці товару / «не знайдено» — прихований scanCatch. */
+/* Тримаємо фокус на прихованому полі-«ловці» (scanCatch) — на БУДЬ-ЯКОМУ екрані, включно з головним.
+   Це поле inputmode="none", тому екранна клавіатура від нього не вискакує. Апаратний сканер
+   «друкує» в нього незалежно від того, що видно на екрані. Видиме поле homeCode отримує фокус
+   (і клавіатуру) лише тоді, коли користувач сам по ньому тапне — ми це більше не форсуємо. */
 function keepScanFocus(){
   if(anyModalOpen() || CONFIG.scanMode==='camera') return;   // при камері-лише фокус не тримаємо
-  const el = (currentScreen==='idle') ? $('homeCode') : $('scanCatch');
+  const el = $('scanCatch');
   if(el) setTimeout(()=>{ if(!anyModalOpen() && CONFIG.scanMode!=='camera') el.focus(); },40);
 }
 
-/* Реклама на головному екрані: поки чекаємо сканування, по черзі показуємо фото поверх екрана.
-   Апаратний сканер друкує в приховане поле незалежно від того, що видно на екрані — тому
-   сканування працює й під рекламою; сканування одразу ховає рекламу (через show()). */
-let adTimer=null, adIndex=0;
+/* Реклама на головному екрані: поки чекаємо сканування, по черзі показуємо фото поверх екрана —
+   цикл «головна → 2 реклами підряд → головна → наступні 2 реклами → ...» (по колу, навіть якщо
+   реклам непарна кількість — просто чергуємо індекси далі). Апаратний сканер друкує в приховане
+   поле незалежно від того, що видно на екрані — тому сканування працює й під рекламою й одразу її ховає. */
+let adTimer=null, adIndex=0, adBurstCount=0;
+const AD_FADE_MS=350;   // має збігатися з transition в CSS (.ad-overlay)
 function randAdDelay(){ return CONFIG.adMinMs + Math.random()*(CONFIG.adMaxMs-CONFIG.adMinMs); }
-function stopAdCycle(){ clearTimeout(adTimer); $('adOverlay').classList.remove('show'); }
+function stopAdCycle(){ clearTimeout(adTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); }
 function restartAdCycle(){ stopAdCycle(); scheduleAd(); }
 function scheduleAd(){
   clearTimeout(adTimer);
@@ -849,9 +854,15 @@ function showAd(){
   if(currentScreen!=='idle' || anyModalOpen() || !ads.length){ scheduleAd(); return; }
   $('adImg').src=ads[adIndex % ads.length]; adIndex++;
   $('adOverlay').classList.add('show');
-  adTimer=setTimeout(hideAd, randAdDelay());
+  adBurstCount++;
+  const perBurst=Math.min(2, ads.length);            // 2 реклами підряд за цикл (1, якщо реклама лише одна)
+  adTimer=setTimeout(()=>{
+    $('adOverlay').classList.remove('show');         // фейд-аут
+    if(adBurstCount<perBurst) setTimeout(showAd, AD_FADE_MS);            // одразу наступна реклама
+    else { adBurstCount=0; setTimeout(scheduleAd, AD_FADE_MS); }         // повертаємось на головну
+  }, randAdDelay());
 }
-function hideAd(){ $('adOverlay').classList.remove('show'); scheduleAd(); }
+function hideAd(){ clearTimeout(adTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); setTimeout(scheduleAd, AD_FADE_MS); }
 $('adOverlay').onclick=()=>{ hideAd(); };
 
 let photoReqId=0;
@@ -1015,7 +1026,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-06 · v36';
+const APP_VERSION = '2026-07-06 · v37';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -1069,7 +1080,6 @@ function updateMeta(){
   const parts=[];
   if(!connOk) parts.push('Немає зв\'язку');
   if(store) parts.push(store);
-  parts.push(APP_VERSION);
   $('connText').textContent = parts.join(' · ');
 }
 function setConn(ok){ connOk=ok; $('meta').classList.toggle('off',!ok); updateMeta(); }
@@ -1259,16 +1269,21 @@ async function closeScanner(){
 $('btnScan').onclick=openScanner;$('scanClose').onclick=closeScanner;
 $('btnBack').onclick=()=>{ current=null; show('idle'); };
 
-/* завжди активне поле вводу на головній (сканер «друкує» сюди, або вводять вручну) */
+/* Поле для РУЧНОГО вводу коду на головній — фокус (і клавіатуру) отримує лише коли користувач
+   сам по ньому тапне. Щойно він з нього йде — повертаємо фокус на прихований scanCatch,
+   щоб апаратний сканер одразу знову міг «друкувати» без зайвої клавіатури на екрані. */
 function submitHome(){ const el=$('homeCode'); const v=(el.value||'').trim(); el.value=''; if(v) lookup(v); else el.focus(); }
 $('homeCode').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); submitHome(); } });
 $('homeFind').onclick=submitHome;
-// тримаємо поле у фокусі, поки ми на головній і не відкрите вікно (щоб сканер завжди потрапляв сюди)
-$('homeCode').addEventListener('blur',()=>{ if(currentScreen==='idle' && !anyModalOpen()) setTimeout(focusHome,60); });
+$('homeCode').addEventListener('blur',()=>{ if(currentScreen==='idle' && !anyModalOpen()) setTimeout(keepScanFocus,60); });
 
-/* приховане поле-«ловець» на картці товару: сканер «друкує» сюди → Enter шукає новий товар */
+/* Приховане поле-«ловець»: сканер «друкує» сюди на БУДЬ-ЯКОМУ екрані → Enter шукає товар */
 $('scanCatch').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const el=$('scanCatch'); const v=(el.value||'').trim(); el.value=''; if(v) lookup(v); } });
-$('scanCatch').addEventListener('blur',()=>{ if(currentScreen!=='idle' && !anyModalOpen()) setTimeout(keepScanFocus,60); });
+$('scanCatch').addEventListener('blur',()=>{
+  if(anyModalOpen()) return;
+  // Якщо фокус пішов на homeCode — це користувач сам тапнув у поле ручного вводу, не заважаємо клавіатурі.
+  setTimeout(()=>{ if(!anyModalOpen() && (document.activeElement&&document.activeElement.id)!=='homeCode') keepScanFocus(); },60);
+});
 
 /* фізичний сканер-«клавіатура» — запасний шлях, якщо фокус десь загубився */
 let buf='',bufT=null;
