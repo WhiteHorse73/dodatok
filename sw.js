@@ -1,5 +1,5 @@
 /* ВЕРСІЯ КЕШУ. Збільшуй число (v4, v5...) щоразу, коли треба гарантовано скинути кеш. */
-const VERSION = 'pc-v37';
+const VERSION = 'pc-v38';
 const CORE = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', e => {
