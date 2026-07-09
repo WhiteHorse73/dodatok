@@ -511,13 +511,6 @@
     </div>
 
     <div class="set-sec">
-      <div class="set-lbl">Реклама на головному екрані</div>
-      <div class="set-sub">Посилання на фото (URL). Показуються по черзі, поки додаток чекає на сканування.</div>
-      <div id="adList" class="store-list"></div>
-      <button class="set-add" id="adAdd">+ Додати рекламу</button>
-    </div>
-
-    <div class="set-sec">
       <div class="set-lbl">Доступ до налаштувань</div>
       <div class="set-sub">Логін і пароль, щоб відкривати цей екран.</div>
       <input id="admUserInput" class="set-input" placeholder="Логін" autocomplete="off">
@@ -568,10 +561,22 @@ const CONFIG = {
   ],
   idleResetMs: 60000,                  // авто-повернення на головну через 60 c після сканування
   requestTimeoutMs: 60000,             // час очікування відповіді сервера — 1 хвилина
-  // Реклама на головному екрані (можна додавати/видаляти в «Налаштуваннях»): порожній список — рекламу не показуємо.
+  // Реклама на головному екрані: список фото формується автоматично з ADS_CONFIG.listUrl —
+  // тут лише початковий порожній стан, поки перша синхронізація ще не відбулась.
   ads: [],
   adMinMs: 15000,                      // мінімальний час показу головної/реклами перед перемиканням
   adMaxMs: 20000                       // максимальний час показу головної/реклами перед перемиканням
+};
+
+/* Реклама: маркетолог керує списком через окрему адмін-панель (не в цьому коді, вхід
+   marketing/SportCity2026 на vision2035.sportcity.ua/pc/admin), а сюди додаток лише
+   періодично приходить за готовим списком посилань (JSON-файл) — вшито в код навмисно,
+   як і CONFIG.auth, не для «Налаштувань». Посилання в list.json — ВІДНОСНІ (напр.
+   "ads/files/1.png"), тому baseUrl потрібен окремо, щоб правильно їх розгорнути. */
+const ADS_CONFIG = {
+  listUrl: 'https://vision2035.sportcity.ua/pc/ads/list.json',
+  baseUrl: 'https://vision2035.sportcity.ua/pc/',
+  syncIntervalMs: 5*60*1000            // раз на 5 хв
 };
 
 /* ----- демо-зображення ----- */
@@ -882,6 +887,120 @@ function showAd(){
 function hideAd(){ clearTimeout(adTimer); clearTimeout(adImgTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); setTimeout(scheduleAd, AD_FADE_MS); }
 $('adOverlay').onclick=()=>{ hideAd(); };
 
+/* =================================================================
+   РЕКЛАМА: раз на 5 хв питаємо ADS_CONFIG.listUrl (звичайний JSON-файл зі списком
+   посилань — його готує окрема адмін-панель, не цей код) і кешуємо самі фото в
+   IndexedDB — показ реклами йде з локального кешу, інтернет у момент показу не потрібен.
+   ================================================================= */
+const AdsDB = (() => {
+  let dbPromise = null;
+  function open(){
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve,reject)=>{
+      const req = indexedDB.open('pricechecker-ads', 2);
+      req.onupgradeneeded = () => {
+        const db=req.result;
+        if(db.objectStoreNames.contains('files')) db.deleteObjectStore('files');
+        db.createObjectStore('files', { keyPath:'url' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  async function all(){
+    const db = await open();
+    return new Promise((resolve,reject)=>{
+      const req = db.transaction('files','readonly').objectStore('files').getAll();
+      req.onsuccess = () => resolve(req.result||[]);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function put(rec){
+    const db = await open();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction('files','readwrite');
+      tx.objectStore('files').put(rec);
+      tx.oncomplete = ()=>resolve(); tx.onerror = ()=>reject(tx.error);
+    });
+  }
+  async function del(url){
+    const db = await open();
+    return new Promise((resolve,reject)=>{
+      const tx = db.transaction('files','readwrite');
+      tx.objectStore('files').delete(url);
+      tx.oncomplete = ()=>resolve(); tx.onerror = ()=>reject(tx.error);
+    });
+  }
+  return { all, put, del };
+})();
+
+/* Перебудовує CONFIG.ads з того, що зараз лежить у кеші (IndexedDB) */
+async function refreshAdsFromDb(){
+  const files = await AdsDB.all();
+  CONFIG.ads = files.map(f => `data:${f.mime};base64,${f.data}`);
+  restartAdCycle();
+}
+
+/* Качає одне фото як base64 (нативно в обхід CORS, як і fetchAuthImage — але без 1С-авторизації,
+   бо сервер реклами інший і чужі креденшели йому не потрібні). */
+async function fetchAdImage(url){
+  const cap=window.Capacitor;
+  const isNative=cap && ((cap.isNativePlatform && cap.isNativePlatform()) || cap.platform==='android' || cap.platform==='ios');
+  const Http=cap && cap.Plugins && (cap.Plugins.CapacitorHttp || cap.Plugins.Http);
+  try{
+    if(isNative && Http){
+      const res=await Http.request({ method:'GET', url, responseType:'blob',
+        connectTimeout:CONFIG.requestTimeoutMs, readTimeout:CONFIG.requestTimeoutMs });
+      if(res.status<200 || res.status>=300 || !res.data) return null;
+      const hk=res.headers && Object.keys(res.headers).find(k=>k.toLowerCase()==='content-type');
+      const mime=(hk?res.headers[hk]:'image/jpeg').split(';')[0]||'image/jpeg';
+      return { url, mime, data:res.data };
+    }
+    const resp=await fetch(url);
+    if(!resp.ok) return null;
+    const blob=await resp.blob();
+    const data=await new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onload=()=>resolve(String(fr.result).split(',')[1]||'');
+      fr.onerror=reject;
+      fr.readAsDataURL(blob);
+    });
+    return { url, mime: blob.type||'image/jpeg', data };
+  }catch(e){ return null; }
+}
+
+/* Питає список реклами й докачує лише те, чого ще нема в кеші. Якщо запит не вдався
+   (нема мережі, сервер недоступний) — просто лишаємо те, що вже закешовано раніше. */
+async function loadRemoteAds(){
+  try{
+    const r = await nativeOrFetch(ADS_CONFIG.listUrl, { headers:{'Accept':'application/json'} });
+    if(!r.ok) return;
+    const json = tryParseJson(r.text);
+    const items = (json && Array.isArray(json.items)) ? json.items : [];
+    // посилання в list.json відносні — розгортаємо відносно ADS_CONFIG.baseUrl (не самого listUrl)
+    const urls = items.map(x=>x&&x.url).filter(Boolean)
+      .map(u=>{ try{ return new URL(u, ADS_CONFIG.baseUrl).href; }catch(e){ return null; } })
+      .filter(Boolean);
+
+    const existing = await AdsDB.all();
+    const existingUrls = new Set(existing.map(x=>x.url));
+    const freshUrls = new Set(urls);
+    for(const rec of existing) if(!freshUrls.has(rec.url)) await AdsDB.del(rec.url);   // зникло зі списку — прибираємо
+
+    for(const url of urls){
+      if(existingUrls.has(url)) continue;              // вже закешовано — повторно не качаємо
+      const rec = await fetchAdImage(url);
+      if(rec) await AdsDB.put(rec);
+    }
+    await refreshAdsFromDb();
+  }catch(e){ /* немає мережі — лишаємо поточний кеш */ }
+}
+
+refreshAdsFromDb();                                     // одразу показуємо те, що закешовано з минулого разу
+loadRemoteAds();                                         // і одразу пробуємо оновити
+setInterval(loadRemoteAds, ADS_CONFIG.syncIntervalMs);   // далі — раз на 5 хв
+
 let photoReqId=0;
 function render(p){
   current=p;
@@ -1043,7 +1162,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-08 · v39';
+const APP_VERSION = '2026-07-09 · v42';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -1061,8 +1180,7 @@ function loadSettings(){
     adminPass:   (s.adminPass!=null) ? s.adminPass : CONFIG.admin.pass,
     scanMode:    s.scanMode || CONFIG.scanMode,
     stores:      (Array.isArray(s.stores)&&s.stores.length) ? s.stores : CONFIG.defaultStores.slice(),
-    activeStore: s.activeStore || (CONFIG.defaultStores[0]&&CONFIG.defaultStores[0].code) || '',
-    ads:         Array.isArray(s.ads) ? s.ads : CONFIG.ads.slice()
+    activeStore: s.activeStore || (CONFIG.defaultStores[0]&&CONFIG.defaultStores[0].code) || ''
   };
 }
 let S = loadSettings();
@@ -1081,7 +1199,7 @@ let S = loadSettings();
   if(S.stores.length!==before){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(S)); }catch(e){} }
 })();
 function persist(){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(S)); }catch(e){} }
-function applySettings(){ CONFIG.mode='live'; CONFIG.baseUrl=S.baseUrl; CONFIG.auth={ user:S.authUser||'', password:S.authPass||'' }; CONFIG.scanMode=S.scanMode; CONFIG.ads=S.ads||[]; updateScanUI(); updateNav(currentScreen); updateMeta(); restartAdCycle(); }
+function applySettings(){ CONFIG.mode='live'; CONFIG.baseUrl=S.baseUrl; CONFIG.auth={ user:S.authUser||'', password:S.authPass||'' }; CONFIG.scanMode=S.scanMode; updateScanUI(); updateNav(currentScreen); updateMeta(); }
 function updateScanUI(){
   const m=CONFIG.scanMode||'both';
   const showCam=(m!=='hardware');   // кнопка камери — у режимах 'camera' та 'both'
@@ -1117,18 +1235,6 @@ function renderStoreList(){
     renderStoreList();
   });
 }
-function renderAdList(){
-  const wrap=$('adList');
-  wrap.innerHTML = (S.ads||[]).map((url,i)=>`
-    <label class="store-item">
-      <span class="si-name" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(url)}</span>
-      <button type="button" class="si-del" data-i="${i}" title="Видалити">✕</button>
-    </label>`).join('') || `<div class="set-sub">Немає реклами — додайте хоча б одне посилання на фото.</div>`;
-  wrap.querySelectorAll('.si-del').forEach(btn=>btn.onclick=(e)=>{ e.preventDefault(); e.stopPropagation();
-    S.ads=(S.ads||[]).filter((_,i)=>i!==Number(btn.dataset.i));
-    renderAdList();
-  });
-}
 function renderModeSeg(){ /* перемикач режиму прибрано — завжди 1С */ }
 function renderScanSeg(){ document.querySelectorAll('#scanSeg button').forEach(b=>b.classList.toggle('on', b.dataset.scan===S.scanMode)); }
 
@@ -1154,7 +1260,7 @@ function openSettings(){
   S=loadSettings();
   $('admUserInput').value=S.adminUser||'';
   $('admPassInput').value=S.adminPass||'';
-  renderStoreList(); renderModeSeg(); renderScanSeg(); renderAdList();
+  renderStoreList(); renderModeSeg(); renderScanSeg();
   $('settings').classList.add('show');
 }
 function closeSettings(){ $('settings').classList.remove('show'); S=loadSettings(); applySettings(); keepScanFocus(); }
@@ -1164,10 +1270,6 @@ $('storeAdd').onclick=()=>{
   const code=(prompt('ID / код магазину (як у 1С):')||'').trim(); if(!code) return;
   if((S.stores||[]).some(x=>x.code===code)){ alert('Магазин з таким ID уже існує.'); return; }
   S.stores=S.stores||[]; S.stores.push({code,name}); S.activeStore=code; renderStoreList();
-};
-$('adAdd').onclick=()=>{
-  const url=(prompt('Посилання (URL) на фото реклами:')||'').trim(); if(!url) return;
-  S.ads=S.ads||[]; S.ads.push(url); renderAdList();
 };
 $('setClose').onclick=closeSettings;
 $('setCancel').onclick=closeSettings;
