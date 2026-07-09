@@ -166,7 +166,7 @@
   .ad-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:flex; align-items:center; justify-content:center; cursor:pointer;
                opacity:0; pointer-events:none; transition:opacity .35s ease; }
   .ad-overlay.show{ opacity:1; pointer-events:auto; }
-  .ad-overlay img{ width:100%; height:100%; object-fit:contain; }
+  .ad-overlay img{ width:100%; height:100%; object-fit:contain; transition:opacity .2s ease; }
 
   /* ---- Сканер (модал) ---- */
   .scanner{ position:fixed; inset:0; background:#000; z-index:100; display:none; overflow:hidden; }
@@ -839,30 +839,47 @@ function keepScanFocus(){
    цикл «головна → 2 реклами підряд → головна → наступні 2 реклами → ...» (по колу, навіть якщо
    реклам непарна кількість — просто чергуємо індекси далі). Апаратний сканер друкує в приховане
    поле незалежно від того, що видно на екрані — тому сканування працює й під рекламою й одразу її ховає. */
-let adTimer=null, adIndex=0, adBurstCount=0;
-const AD_FADE_MS=350;   // має збігатися з transition в CSS (.ad-overlay)
+let adTimer=null, adImgTimer=null, adIndex=0, adBurstCount=0;
+const AD_FADE_MS=350;      // фейд усього оверлея (чорне тло) — має збігатися з transition в CSS (.ad-overlay)
+const AD_IMG_FADE_MS=200;  // швидкий кросфейд МІЖ двома рекламами підряд — чорне тло весь час лишається суцільним
 function randAdDelay(){ return CONFIG.adMinMs + Math.random()*(CONFIG.adMaxMs-CONFIG.adMinMs); }
-function stopAdCycle(){ clearTimeout(adTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); }
+function stopAdCycle(){ clearTimeout(adTimer); clearTimeout(adImgTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); }
 function restartAdCycle(){ stopAdCycle(); scheduleAd(); }
 function scheduleAd(){
   clearTimeout(adTimer);
   if(!(CONFIG.ads||[]).length) return;               // немає реклами — нічого не плануємо
   adTimer=setTimeout(showAd, randAdDelay());
 }
+/* Міняє картинку в оверлеї: якщо оверлей вже показаний (перехід між двома рекламами підряд) —
+   кросфейдить лише саму картинку, чорне тло лишається суцільним, головний екран не «просвічує». */
+function setAdImage(src){
+  const img=$('adImg');
+  clearTimeout(adImgTimer);
+  if($('adOverlay').classList.contains('show')){
+    img.style.opacity=0;
+    adImgTimer=setTimeout(()=>{ img.src=src; img.style.opacity=1; }, AD_IMG_FADE_MS);
+  }else{
+    img.src=src; img.style.opacity=1;
+  }
+}
 function showAd(){
   const ads=CONFIG.ads||[];
   if(currentScreen!=='idle' || anyModalOpen() || !ads.length){ scheduleAd(); return; }
-  $('adImg').src=ads[adIndex % ads.length]; adIndex++;
+  setAdImage(ads[adIndex % ads.length]); adIndex++;
   $('adOverlay').classList.add('show');
   adBurstCount++;
   const perBurst=Math.min(2, ads.length);            // 2 реклами підряд за цикл (1, якщо реклама лише одна)
   adTimer=setTimeout(()=>{
-    $('adOverlay').classList.remove('show');         // фейд-аут
-    if(adBurstCount<perBurst) setTimeout(showAd, AD_FADE_MS);            // одразу наступна реклама
-    else { adBurstCount=0; setTimeout(scheduleAd, AD_FADE_MS); }         // повертаємось на головну
+    if(adBurstCount<perBurst){
+      showAd();                                       // наступна реклама одразу — оверлей лишається показаним
+    }else{
+      adBurstCount=0;
+      $('adOverlay').classList.remove('show');        // фейд-аут — повертаємось на головну
+      setTimeout(scheduleAd, AD_FADE_MS);
+    }
   }, randAdDelay());
 }
-function hideAd(){ clearTimeout(adTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); setTimeout(scheduleAd, AD_FADE_MS); }
+function hideAd(){ clearTimeout(adTimer); clearTimeout(adImgTimer); adBurstCount=0; $('adOverlay').classList.remove('show'); setTimeout(scheduleAd, AD_FADE_MS); }
 $('adOverlay').onclick=()=>{ hideAd(); };
 
 let photoReqId=0;
@@ -1026,7 +1043,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-08 · v38';
+const APP_VERSION = '2026-07-08 · v39';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
