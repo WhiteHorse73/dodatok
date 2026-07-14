@@ -117,9 +117,9 @@
   .price-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .pc-col{ display:flex; flex-direction:column; gap:0; text-align:center; flex:1; }
   .lbl{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
-  .old{ font-size:18px; color:var(--old); text-decoration:line-through; font-weight:600; }
-  .disc{ font-size:21px; color:var(--discount); font-weight:800; }
-  .final{ font-size:clamp(30px,9vw,46px); font-weight:900; letter-spacing:-.02em; line-height:1; }
+  .old{ font-size:20px; color:var(--old); text-decoration:line-through; font-weight:600; }
+  .disc{ font-size:23px; color:var(--discount); font-weight:800; }
+  .final{ font-size:clamp(26px,7.5vw,40px); font-weight:900; letter-spacing:-.02em; line-height:1; }
   .final .cur{ font-size:.4em; font-weight:700; color:var(--muted); margin-left:5px; }
   .final .per{ font-size:.32em; font-weight:700; color:var(--muted); margin-left:4px; }
   .sep{ width:1px; align-self:stretch; background:var(--line); }
@@ -262,7 +262,7 @@
     .p-name{ font-size:16px; }
     .info-card{ gap:5px; padding:9px 13px; }
     .promo-period{ font-size:11px; padding:5px 9px; }
-    .final{ font-size:clamp(26px,8vw,40px); }
+    .final{ font-size:clamp(22px,6.5vw,34px); }
     .colors{ padding:7px 10px; gap:5px; }
     .swatch{ width:44px; } .swatch .img{ width:38px;height:38px; }
   }
@@ -334,15 +334,15 @@
 
     .price-card{ padding:clamp(6px,1.2vh,14px) clamp(10px,1.4vw,18px); }
     .lbl{ font-size:clamp(8px,1.1vh,11px); }
-    .old{ font-size:clamp(13px,1.9vh,19px); }
-    .disc{ font-size:clamp(15px,2.4vh,24px); }
-    .final{ font-size:clamp(24px,6vh,56px); }
+    .old{ font-size:clamp(14px,2.1vh,21px); }
+    .disc{ font-size:clamp(16px,2.6vh,26px); }
+    .final{ font-size:clamp(20px,5.2vh,48px); }
     .promo-period{ font-size:clamp(9px,1.4vh,13px); padding:clamp(4px,0.7vh,7px) clamp(7px,1vw,11px); }
 
     .avail{ padding:clamp(7px,1.3vh,14px) clamp(10px,1.3vw,16px); gap:clamp(4px,0.9vh,8px); }
     .avail-title{ font-size:clamp(12px,1.9vh,16px); }
-    .avail .tag{ font-size:clamp(9px,1.3vh,12px); padding:clamp(3px,0.6vh,5px) clamp(7px,0.9vw,10px); }
-    .avail .sz{ font-size:clamp(11px,1.8vh,16px); padding:clamp(2px,0.5vh,4px) clamp(6px,0.9vw,10px); }
+    .avail .tag{ font-size:clamp(10px,1.5vh,14px); padding:clamp(4px,0.7vh,6px) clamp(8px,1vw,11px); }
+    .avail .sz{ font-size:clamp(12px,2vh,18px); padding:clamp(3px,0.6vh,5px) clamp(7px,1vw,11px); }
 
     .colors{ padding:clamp(6px,1.2vh,12px) clamp(9px,1.2vw,14px); gap:clamp(4px,0.8vh,8px); }
     .colors .ttl{ font-size:clamp(11px,1.8vh,15px); }
@@ -367,7 +367,7 @@
     .idle{ gap:clamp(6px,1.6vh,16px); padding:clamp(8px,2vh,20px) 16px; justify-content:center; }
     .idle .scanicon{ width:clamp(52px,13vh,96px); height:clamp(52px,13vh,96px); border-radius:18px; border-width:2px; }
     .idle .scanicon svg{ width:50%; height:50%; }
-    .idle h1{ font-size:clamp(18px,3.8vh,29px); }
+    .idle h1{ font-size:clamp(20px,4.3vh,33px); }
     .idle p{ font-size:clamp(13px,2.5vh,18px); max-width:none; }
     .demo-chips{ gap:6px; margin-top:0; }
     .demo-chips .dtag{ font-size:10px; }
@@ -379,7 +379,11 @@
     /* стрілка — у потоці, по центру, не йде за межі екрана */
     .scan-down{ position:static; transform:none; left:auto; bottom:auto; margin-top:clamp(2px,1vh,8px); }
     .scan-down .cap{ font-size:11px; }
-    .scan-down svg{ width:clamp(28px,6vh,46px); height:clamp(28px,6vh,46px); }
+    .scan-down svg{ width:clamp(32px,7vh,52px); height:clamp(32px,7vh,52px); }
+
+    /* Апаратний режим (без кнопки камери) — на одну картку менше, і space-evenly
+       розтягує решту заголовок/поле/стрілку із завеликими проміжками. Стягуємо ближче. */
+    .idle.mode-hardware{ justify-content:center; gap:clamp(12px,2.6vh,28px); }
   }
 
   /* Великий екран (10″ планшет / кіоск): той самий макет, але помітно більший —
@@ -393,7 +397,7 @@
        щоб великий екран не лишався напівпорожнім. */
     .idle{ justify-content:space-evenly; gap:clamp(16px,3vh,36px); padding:clamp(24px,5vh,56px) 64px; }
     .idle .scanicon{ width:clamp(90px,15vh,150px); height:clamp(90px,15vh,150px); }
-    .idle h1{ font-size:clamp(32px,5.2vh,52px); }
+    .idle h1{ font-size:clamp(36px,5.8vh,58px); }
     .idle p{ font-size:clamp(19px,3.2vh,28px); }
     .code-entry{ max-width:min(80vw,900px); gap:18px; }
     .code-entry input{ font-size:clamp(20px,3.2vh,28px); padding:clamp(16px,2.6vh,24px) 22px; }
@@ -402,7 +406,10 @@
     .btn-cam svg{ width:28px; height:28px; }
     .scan-down{ margin-top:clamp(8px,2vh,22px); }
     .scan-down .cap{ font-size:16px; }
-    .scan-down svg{ width:clamp(48px,8vh,68px); height:clamp(48px,8vh,68px); }
+    .scan-down svg{ width:clamp(54px,9vh,76px); height:clamp(54px,9vh,76px); }
+
+    /* Апаратний режим тут теж (та сама причина, що й у загальному ландшафтному блоці вище) */
+    .idle.mode-hardware{ justify-content:center; gap:clamp(20px,3.6vh,44px); }
 
     /* Картка товару: трохи ширша колонка фото (було 1.5fr/1fr — фото лишалось відносно малим) */
     .product.show{ grid-template-columns: 1.2fr 1fr; }
@@ -412,12 +419,12 @@
     .chip .k{ font-size:clamp(11px,1.5vh,14px); }
     .chip .v{ font-size:clamp(16px,2.5vh,23px); }
     .lbl{ font-size:clamp(11px,1.5vh,14px); }
-    .old{ font-size:clamp(17px,2.5vh,24px); }
-    .disc{ font-size:clamp(19px,3vh,29px); }
-    .final{ font-size:clamp(30px,7.5vh,68px); }
+    .old{ font-size:clamp(19px,2.8vh,27px); }
+    .disc{ font-size:clamp(21px,3.3vh,32px); }
+    .final{ font-size:clamp(26px,6.5vh,58px); }
     .avail-title{ font-size:clamp(16px,2.5vh,21px); }
-    .avail .tag{ font-size:clamp(12px,1.8vh,16px); }
-    .avail .sz{ font-size:clamp(15px,2.4vh,21px); }
+    .avail .tag{ font-size:clamp(14px,2.2vh,19px); padding:clamp(6px,1vh,9px) clamp(11px,1.4vw,15px); }
+    .avail .sz{ font-size:clamp(17px,2.8vh,24px); padding:clamp(5px,0.9vh,8px) clamp(10px,1.4vw,14px); }
     .colors .ttl{ font-size:clamp(15px,2.4vh,20px); }
     .color-sizes{ font-size:clamp(14px,2.2vh,19px); }
   }
@@ -1190,7 +1197,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v46';
+const APP_VERSION = '2026-07-09 · v47';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
@@ -1234,6 +1241,7 @@ function updateScanUI(){
   const showHw =(m!=='camera');     // стрілка-підказка на апаратний сканер
   ['btnScan'].forEach(id=>{ const el=$(id); if(el) el.style.display=showCam?'':'none'; });
   const sd=document.querySelector('.scan-down'); if(sd) sd.style.display=showHw?'':'none';
+  $('idle').classList.toggle('mode-hardware', m==='hardware');   // без кнопки камери елементи інакше розподіляються — трохи стягуємо
 }
 function activeStoreCode(){ return S.activeStore||''; }
 function activeStoreName(){ const x=(S.stores||[]).find(s=>s.code===S.activeStore); return x?x.name:''; }
