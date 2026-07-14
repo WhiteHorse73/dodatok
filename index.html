@@ -23,7 +23,7 @@
 <style>
   :root{
     --bg:#ffffff; --panel:#ffffff; --ink:#1c1c1e; --muted:#8e8e93; --line:#e9e9ec; --soft:#f3f3f5;
-    --accent:#1c1c1e; --accent-dk:#000; --old:#b3b3b9; --hall:#1c1c1e; --stock:#9a9aa0;
+    --accent:#1c1c1e; --accent-dk:#000; --old:#b3b3b9; --hall:#1c1c1e; --stock:#9a9aa0; --discount:#dc2626;
     --radius:16px; --gap:9px;
   }
   *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
@@ -93,7 +93,7 @@
                flex:1 1 0; min-height:70px; display:flex; align-items:center; justify-content:center; }
   .photo-wrap img{ position:absolute; inset:12px; width:calc(100% - 24px); height:calc(100% - 24px); object-fit:contain; }
   .photo-wrap .ph-empty{ color:var(--muted); font-size:14px; }
-  .badge-sale{ position:absolute; top:10px; left:10px; background:var(--accent); color:#fff; font-weight:800; padding:6px 12px; border-radius:999px; font-size:16px; }
+  .badge-sale{ position:absolute; top:10px; left:10px; background:var(--discount); color:#fff; font-weight:800; padding:6px 12px; border-radius:999px; font-size:16px; }
 
   .info-card{ flex:0 0 auto; background:transparent; padding:9px 6px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--line); }
   .p-name{ font-size:18px; font-weight:800; line-height:1.15; }
@@ -117,7 +117,7 @@
   .pc-col{ display:flex; flex-direction:column; gap:0; text-align:center; flex:1; }
   .lbl{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
   .old{ font-size:18px; color:var(--old); text-decoration:line-through; font-weight:600; }
-  .disc{ font-size:21px; color:var(--ink); font-weight:800; }
+  .disc{ font-size:21px; color:var(--discount); font-weight:800; }
   .final{ font-size:clamp(30px,9vw,46px); font-weight:900; letter-spacing:-.02em; line-height:1; }
   .final .cur{ font-size:.4em; font-weight:700; color:var(--muted); margin-left:5px; }
   .final .per{ font-size:.32em; font-weight:700; color:var(--muted); margin-left:4px; }
@@ -400,7 +400,8 @@
     .scan-down .cap{ font-size:16px; }
     .scan-down svg{ width:clamp(48px,8vh,68px); height:clamp(48px,8vh,68px); }
 
-    /* Картка товару */
+    /* Картка товару: трохи ширша колонка фото (було 1.5fr/1fr — фото лишалось відносно малим) */
+    .product.show{ grid-template-columns: 1.2fr 1fr; }
     .p-name{ font-size:clamp(22px,3.6vh,38px); }
     .p-brand{ font-size:clamp(13px,1.8vh,16px); }
     .row{ font-size:clamp(15px,2.5vh,22px); }
@@ -1196,7 +1197,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v44';
+const APP_VERSION = '2026-07-09 · v45';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
