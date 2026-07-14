@@ -63,7 +63,7 @@
   .idle .scanicon{ width:104px;height:104px;border-radius:24px;border:3px solid var(--accent); color:var(--accent); display:flex;align-items:center;justify-content:center; }
   .idle .scanicon svg{ width:54px;height:54px; }
   .idle-head h1{ font-size:29px; font-weight:800; }
-  .idle .idle-head p, .idle p{ font-size:18px; color:var(--muted); max-width:460px; line-height:1.5; }
+  .idle p{ font-size:18px; color:var(--muted); max-width:460px; line-height:1.5; }
   .code-entry{ display:flex; gap:8px; width:100%; max-width:440px; }
   .code-entry input{ flex:1; min-width:0; font:inherit; font-size:18px; padding:14px 16px; border-radius:13px; border:1.5px solid var(--line); background:#fff; color:var(--ink); text-align:center; }
   .code-entry input:focus{ outline:none; border-color:var(--ink); }
@@ -347,11 +347,6 @@
     .color-sizes{ font-size:clamp(10px,1.6vh,14px); }
   }
 
-  /* Великий екран (10″ планшет / кіоск) — трохи просторіше */
-  @media (orientation:landscape) and (min-width:1000px) and (min-height:600px){
-    :root{ --gap:14px; --radius:18px; }
-  }
-
   /* Товар без кольорів (напр. дані з 1С без палітри) — ховаємо панель кольорів */
   .product.no-colors .colors{ display:none !important; }
   @media (orientation:landscape){
@@ -381,6 +376,45 @@
     .scan-down{ position:static; transform:none; left:auto; bottom:auto; margin-top:clamp(2px,1vh,8px); }
     .scan-down .cap{ font-size:11px; }
     .scan-down svg{ width:clamp(28px,6vh,46px); height:clamp(28px,6vh,46px); }
+  }
+
+  /* Великий екран (10″ планшет / кіоск): той самий макет, але помітно більший —
+     інакше на великому екрані лишається багато порожнього місця навколо елементів,
+     хоча на телефоні розміри якраз. Йде ПІСЛЯ загальних правил горизонтальної
+     орієнтації, щоб перекрити їх (той самий пріоритет, останнє правило виграє). */
+  @media (orientation:landscape) and (min-width:1000px) and (min-height:600px){
+    :root{ --gap:16px; --radius:20px; }
+
+    /* Головний екран: елементи самі розходяться по висоті (не одним щільним блоком по центру),
+       щоб великий екран не лишався напівпорожнім. */
+    .idle{ justify-content:space-evenly; gap:clamp(16px,3vh,36px); padding:clamp(24px,5vh,56px) 64px; }
+    .idle .scanicon{ width:clamp(90px,15vh,150px); height:clamp(90px,15vh,150px); }
+    .idle h1{ font-size:clamp(32px,5.2vh,52px); }
+    .idle p{ font-size:clamp(19px,3.2vh,28px); }
+    .code-entry{ max-width:min(80vw,900px); gap:18px; }
+    .code-entry input{ font-size:clamp(20px,3.2vh,28px); padding:clamp(16px,2.6vh,24px) 22px; }
+    .ce-find{ font-size:clamp(18px,2.8vh,24px); padding:0 34px; }
+    .btn-cam{ max-width:min(80vw,900px); font-size:clamp(18px,2.8vh,24px); padding:clamp(16px,2.6vh,22px) 28px; }
+    .btn-cam svg{ width:28px; height:28px; }
+    .scan-down{ margin-top:clamp(8px,2vh,22px); }
+    .scan-down .cap{ font-size:16px; }
+    .scan-down svg{ width:clamp(48px,8vh,68px); height:clamp(48px,8vh,68px); }
+
+    /* Картка товару */
+    .p-name{ font-size:clamp(22px,3.6vh,38px); }
+    .p-brand{ font-size:clamp(13px,1.8vh,16px); }
+    .row{ font-size:clamp(15px,2.5vh,22px); }
+    .chip .k{ font-size:clamp(11px,1.5vh,14px); }
+    .chip .v{ font-size:clamp(16px,2.5vh,23px); }
+    .lbl{ font-size:clamp(11px,1.5vh,14px); }
+    .old{ font-size:clamp(17px,2.5vh,24px); }
+    .disc{ font-size:clamp(19px,3vh,29px); }
+    .final{ font-size:clamp(30px,7.5vh,68px); }
+    .avail-title{ font-size:clamp(16px,2.5vh,21px); }
+    .avail .tag{ font-size:clamp(12px,1.8vh,16px); }
+    .avail .sz{ font-size:clamp(15px,2.4vh,21px); }
+    .colors .ttl{ font-size:clamp(15px,2.4vh,20px); }
+    .color-sizes{ font-size:clamp(14px,2.2vh,19px); }
   }
 </style>
 </head>
@@ -1162,7 +1196,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v42';
+const APP_VERSION = '2026-07-09 · v44';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
