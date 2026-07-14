@@ -95,6 +95,7 @@
   .photo-wrap .ph-empty{ color:var(--muted); font-size:14px; }
   .badge-sale{ position:absolute; top:10px; left:10px; background:var(--discount); color:#fff; font-weight:800; padding:6px 12px; border-radius:999px; font-size:16px; }
 
+  .name-card{ flex:0 0 auto; padding:0 6px; }
   .info-card{ flex:0 0 auto; background:transparent; padding:9px 6px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--line); }
   .p-name{ font-size:18px; font-weight:800; line-height:1.15; }
   .p-brand{ font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-top:3px; }
@@ -160,7 +161,6 @@
   .notfound p{ color:var(--muted); font-size:15px; }
   .notfound code{ background:var(--soft); padding:3px 9px; border-radius:6px; color:var(--ink); font-size:14px; }
   .notfound .nf-sub{ color:var(--muted); font-size:15px; }
-  .notfound .nf-reason{ margin-top:8px; max-width:460px; background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:10px 13px; color:var(--ink); font-size:13px; line-height:1.4; white-space:pre-line; text-align:left; overflow-wrap:anywhere; }
 
   /* ---- Реклама на головному екрані ---- */
   .ad-overlay{ position:fixed; inset:0; background:#000; z-index:60; display:flex; align-items:center; justify-content:center; cursor:pointer;
@@ -292,16 +292,18 @@
     .product.show{
       display:grid; flex:1; min-height:0; height:100%;
       grid-template-columns: 1.5fr 1fr;
-      grid-template-rows: minmax(0,1.3fr) auto minmax(0,1fr);
+      grid-template-rows: auto minmax(0,1.3fr) auto minmax(0,1fr);
       grid-template-areas:
+        "name  name"
         "info  photo"
         "price colors"
         "sizes colors";
       gap:var(--gap);
     }
+    .name-card { grid-area:name;   min-height:0; padding:0 2px; }
     .info-card { grid-area:info;   min-height:0; overflow:hidden; justify-content:space-between; }
     .price-card{ grid-area:price;  min-height:0; }
-    .avail     { grid-area:sizes;  min-height:0; overflow:hidden; justify-content:flex-start; }
+    .avail     { grid-area:sizes;  min-height:0; overflow:hidden; justify-content:space-evenly; }
     .photo-wrap{ grid-area:photo;  min-height:0; }
     .colors    { grid-area:colors; min-height:0; overflow:hidden; justify-content:space-between; }
 
@@ -320,6 +322,7 @@
     .colors .strip .swatch.active .nm{ font-size:clamp(11px,1.8vh,14px); margin-top:3px; }
 
     /* Адаптивні (під висоту екрана) розміри тексту — нічого не «вилазить» */
+    .name-card{ display:flex; flex-direction:column; justify-content:center; padding:0 clamp(11px,1.6vw,18px) clamp(4px,1vh,10px); border-bottom:1px solid var(--line); }
     .info-card{ padding:clamp(8px,1.6vh,18px) clamp(11px,1.6vw,18px); gap:clamp(3px,0.9vh,9px); }
     .p-name{ font-size:clamp(15px,2.7vh,28px); line-height:1.1; }
     .p-brand{ font-size:clamp(9px,1.3vh,12px); }
@@ -352,9 +355,10 @@
   @media (orientation:landscape){
     .product.no-colors.show{
       grid-template-areas:
+        "name  name"
         "info  photo"
         "price photo"
-        "sizes photo";          /* фото займає всю праву колонку */
+        "sizes photo";          /* фото займає всю праву колонку (крім рядка назви) */
     }
   }
 
@@ -461,11 +465,11 @@
   <!-- Товар -->
   <div class="product" id="product">
     <div class="photo-wrap" id="photoWrap"><span class="ph-empty">Фото товару</span></div>
+    <div class="name-card" id="nameCard">
+      <div class="p-name" id="pName">—</div>
+      <div class="p-brand" id="pBrand" style="display:none"></div>
+    </div>
     <div class="info-card">
-      <div>
-        <div class="p-name" id="pName">—</div>
-        <div class="p-brand" id="pBrand" style="display:none"></div>
-      </div>
       <div class="row" id="rowSku"><span class="k">Артикул:</span><span class="v" id="pSku">—</span></div>
       <div class="row" id="rowSupplier"><span class="k">Постачальник:</span><span class="v" id="pSupplier">—</span></div>
       <div class="row purpose" id="rowPurpose"><span class="k">Призначення:</span><span class="v" id="pPurpose">—</span></div>
@@ -503,7 +507,6 @@
     <h2 id="nfTitle">Товар не знайдено</h2>
     <p>Код <code id="nfCode">—</code></p>
     <div class="nf-sub" id="nfSub">відсутній у каталозі обраного магазину</div>
-    <div class="nf-reason" id="nfReason" style="display:none"></div>
   </div>
 
 </div>
@@ -1169,7 +1172,6 @@ async function lookup(code){
     if(p && isUnavailable(p)){
       $('nfTitle').textContent='Немає в наявності';
       $('nfSub').textContent='Зверніться до консультанта для уточнення інформації';
-      $('nfReason').style.display='none';
       show('notfound'); resetIdle();
       return;
     }
@@ -1177,27 +1179,18 @@ async function lookup(code){
     // сервер відповів, але товару нема
     $('nfTitle').textContent='Товар не знайдено';
     $('nfSub').textContent = 'відсутній у каталозі обраного магазину';
-    $('nfReason').textContent='Діагностика:'
-      +'\n— Канал: '+(window.__PC_TRANSPORT||'?')
-      +'\n— HTTP-статус: '+(window.__PC_STATUS!=null?window.__PC_STATUS:'?')
-      +'\n— Магазин (store): '+(window.__PC_STORE||'(порожній!)')
-      +'\n— Запит: '+(window.__PC_URL||'?')
-      +'\n— Відповідь сервера (початок):\n'+(window.__PC_RAW||'(порожньо)');
-    $('nfReason').style.display='';
     show('notfound'); resetIdle();
   }catch(e){
     // запит не виконався — це НЕ «нема товару», а проблема зв'язку/налаштувань
     $('nfTitle').textContent='Не вдалося отримати дані';
     $('nfSub').textContent='Запит до бази 1С не виконався';
-    $('nfReason').textContent = (e && e.detail) ? e.detail : ('Помилка: '+((e&&e.message)||e));
-    $('nfReason').style.display='';
     show('notfound'); resetIdle();
   }
 }
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v45';
+const APP_VERSION = '2026-07-09 · v46';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
