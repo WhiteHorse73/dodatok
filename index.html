@@ -104,7 +104,6 @@
   .row .v{ color:var(--ink); font-weight:600; }
   .attrs{ display:flex; flex-wrap:wrap; gap:8px; padding-top:1px; }
   .chip{ flex:1 1 45%; min-width:110px; border:1px solid var(--line); border-radius:10px; padding:6px 11px; display:flex; flex-direction:column; gap:0; }
-  .chip.chip-narrow{ flex:0 1 auto; min-width:76px; }   /* короткий текст (напр. розмір «35-38») — не тягнеться на півряду */
   .chip.chip-wide{ flex:1 1 100%; min-width:0; }        /* текст різної довжини (напр. склад) — завжди на весь рядок */
   .chip .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
   .chip .v{ font-size:15px; font-weight:700; }
@@ -482,9 +481,9 @@
       <div class="attrs" id="rowAttrs">
         <div class="chip" id="chipSku"><span class="k">Артикул</span><span class="v" id="pSku">—</span></div>
         <div class="chip" id="chipColor"><span class="k">Колір</span><span class="v" id="pColor">—</span></div>
-        <div class="chip chip-narrow" id="chipSize"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
-        <div class="chip chip-wide" id="chipComp"><span class="k">Склад</span><span class="v" id="pComp">—</span></div>
         <div class="chip" id="chipPurpose"><span class="k">Призначення</span><span class="v" id="pPurpose">—</span></div>
+        <div class="chip chip-wide" id="chipComp"><span class="k">Склад</span><span class="v" id="pComp">—</span></div>
+        <div class="chip" id="chipSize"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
         <div class="chip" id="chipCountry"><span class="k">Країна</span><span class="v" id="pCountry">—</span></div>
       </div>
       <div class="extra" id="pExtra"></div>
@@ -1199,7 +1198,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v50';
+const APP_VERSION = '2026-07-09 · v51';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
