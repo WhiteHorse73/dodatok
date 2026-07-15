@@ -76,7 +76,7 @@
   .scan-down{ position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--accent); pointer-events:none; }
   .scan-down .cap{ font-size:12px; font-weight:800; letter-spacing:.1em; color:var(--muted); text-transform:uppercase; }
   .scan-down svg{ width:50px; height:50px; animation:scanBob 1.4s ease-in-out infinite; }
-  @keyframes scanBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
+  @keyframes scanBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(16px); } }
   .demo-chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:4px; }
   .demo-chips .dtag{ width:100%; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.12em; }
   .demo-chips button{ border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; font-size:13px; font-weight:700; border-radius:999px; padding:8px 14px; cursor:pointer; }
@@ -364,7 +364,7 @@
 
   /* Головний екран у горизонталі — компактний і статичний (вміщається без скролу) */
   @media (orientation:landscape){
-    .idle{ gap:clamp(6px,1.6vh,16px); padding:clamp(8px,2vh,20px) 16px; justify-content:center; }
+    .idle{ gap:clamp(6px,1.6vh,16px); padding:clamp(8px,2vh,20px) 16px clamp(56px,11vh,96px); justify-content:center; }
     .idle .scanicon{ width:clamp(52px,13vh,96px); height:clamp(52px,13vh,96px); border-radius:18px; border-width:2px; }
     .idle .scanicon svg{ width:50%; height:50%; }
     .idle h1{ font-size:clamp(20px,4.3vh,33px); }
@@ -376,8 +376,8 @@
     .ce-find{ font-size:clamp(13px,2vh,15px); padding:0 16px; }
     .btn-cam{ font-size:clamp(13px,2vh,15px); padding:clamp(9px,1.6vh,13px) 16px; }
     .btn-cam svg{ width:18px; height:18px; }
-    /* стрілка — у потоці, по центру, не йде за межі екрана */
-    .scan-down{ position:static; transform:none; left:auto; bottom:auto; margin-top:clamp(2px,1vh,8px); }
+    /* стрілка — знизу екрана (як і на телефоні), а не в потоці серед інших елементів */
+    .scan-down{ position:absolute; left:50%; bottom:clamp(10px,2.5vh,28px); transform:translateX(-50%); margin-top:0; }
     .scan-down .cap{ font-size:11px; }
     .scan-down svg{ width:clamp(32px,7vh,52px); height:clamp(32px,7vh,52px); }
 
@@ -395,7 +395,7 @@
 
     /* Головний екран: елементи самі розходяться по висоті (не одним щільним блоком по центру),
        щоб великий екран не лишався напівпорожнім. */
-    .idle{ justify-content:space-evenly; gap:clamp(16px,3vh,36px); padding:clamp(24px,5vh,56px) 64px; }
+    .idle{ justify-content:space-evenly; gap:clamp(16px,3vh,36px); padding:clamp(24px,5vh,56px) 64px clamp(80px,14vh,130px); }
     .idle .scanicon{ width:clamp(90px,15vh,150px); height:clamp(90px,15vh,150px); }
     .idle h1{ font-size:clamp(36px,5.8vh,58px); }
     .idle p{ font-size:clamp(19px,3.2vh,28px); }
@@ -404,7 +404,7 @@
     .ce-find{ font-size:clamp(18px,2.8vh,24px); padding:0 34px; }
     .btn-cam{ max-width:min(80vw,900px); font-size:clamp(18px,2.8vh,24px); padding:clamp(16px,2.6vh,22px) 28px; }
     .btn-cam svg{ width:28px; height:28px; }
-    .scan-down{ margin-top:clamp(8px,2vh,22px); }
+    .scan-down{ bottom:clamp(16px,3.5vh,40px); }
     .scan-down .cap{ font-size:16px; }
     .scan-down svg{ width:clamp(54px,9vh,76px); height:clamp(54px,9vh,76px); }
 
@@ -513,7 +513,7 @@
     <div class="x">✕</div>
     <h2 id="nfTitle">Товар не знайдено</h2>
     <p>Код <code id="nfCode">—</code></p>
-    <div class="nf-sub" id="nfSub">відсутній у каталозі обраного магазину</div>
+    <div class="nf-sub" id="nfSub">Зверніться до консультанта для уточнення інформації</div>
   </div>
 
 </div>
@@ -1185,7 +1185,7 @@ async function lookup(code){
     if(p){ render(p); return; }
     // сервер відповів, але товару нема
     $('nfTitle').textContent='Товар не знайдено';
-    $('nfSub').textContent = 'відсутній у каталозі обраного магазину';
+    $('nfSub').textContent = 'Зверніться до консультанта для уточнення інформації';
     show('notfound'); resetIdle();
   }catch(e){
     // запит не виконався — це НЕ «нема товару», а проблема зв'язку/налаштувань
@@ -1197,7 +1197,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v47';
+const APP_VERSION = '2026-07-09 · v48';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
