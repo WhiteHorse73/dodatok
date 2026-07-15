@@ -104,6 +104,8 @@
   .row .v{ color:var(--ink); font-weight:600; }
   .attrs{ display:flex; flex-wrap:wrap; gap:8px; padding-top:1px; }
   .chip{ flex:1 1 45%; min-width:110px; border:1px solid var(--line); border-radius:10px; padding:6px 11px; display:flex; flex-direction:column; gap:0; }
+  .chip.chip-narrow{ flex:0 1 auto; min-width:76px; }   /* короткий текст (напр. розмір «35-38») — не тягнеться на півряду */
+  .chip.chip-wide{ flex:1 1 100%; min-width:0; }        /* текст різної довжини (напр. склад) — завжди на весь рядок */
   .chip .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
   .chip .v{ font-size:15px; font-weight:700; }
   .extra{ border-top:1px solid var(--line); padding-top:7px; margin-top:1px; display:flex; flex-wrap:wrap; gap:2px 14px; }
@@ -116,7 +118,7 @@
   .price-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .pc-col{ display:flex; flex-direction:column; gap:0; text-align:center; flex:1; }
   .lbl{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
-  .old{ font-size:20px; color:var(--old); text-decoration:line-through; font-weight:600; }
+  .old{ font-size:23px; color:var(--old); text-decoration:line-through; font-weight:600; }
   .disc{ font-size:23px; color:var(--discount); font-weight:800; }
   .final{ font-size:clamp(26px,7.5vw,40px); font-weight:900; letter-spacing:-.02em; line-height:1; }
   .final .cur{ font-size:.4em; font-weight:700; color:var(--muted); margin-left:5px; }
@@ -300,7 +302,7 @@
       gap:var(--gap);
     }
     .name-card { grid-area:name;   min-height:0; padding:0 2px; }
-    .info-card { grid-area:info;   min-height:0; overflow:hidden; justify-content:space-between; }
+    .info-card { grid-area:info;   min-height:0; overflow-y:auto; justify-content:space-between; }
     .price-card{ grid-area:price;  min-height:0; }
     .avail     { grid-area:sizes;  min-height:0; overflow:hidden; justify-content:space-evenly; }
     .photo-wrap{ grid-area:photo;  min-height:0; }
@@ -333,7 +335,7 @@
 
     .price-card{ padding:clamp(6px,1.2vh,14px) clamp(10px,1.4vw,18px); }
     .lbl{ font-size:clamp(8px,1.1vh,11px); }
-    .old{ font-size:clamp(14px,2.1vh,21px); }
+    .old{ font-size:clamp(16px,2.4vh,24px); }
     .disc{ font-size:clamp(16px,2.6vh,26px); }
     .final{ font-size:clamp(20px,5.2vh,48px); }
     .promo-period{ font-size:clamp(9px,1.4vh,13px); padding:clamp(4px,0.7vh,7px) clamp(7px,1vw,11px); }
@@ -418,7 +420,7 @@
     .chip .k{ font-size:clamp(11px,1.5vh,14px); }
     .chip .v{ font-size:clamp(16px,2.5vh,23px); }
     .lbl{ font-size:clamp(11px,1.5vh,14px); }
-    .old{ font-size:clamp(19px,2.8vh,27px); }
+    .old{ font-size:clamp(21px,3.1vh,30px); }
     .disc{ font-size:clamp(21px,3.3vh,32px); }
     .final{ font-size:clamp(26px,6.5vh,58px); }
     .avail-title{ font-size:clamp(16px,2.5vh,21px); }
@@ -480,8 +482,8 @@
       <div class="attrs" id="rowAttrs">
         <div class="chip" id="chipSku"><span class="k">Артикул</span><span class="v" id="pSku">—</span></div>
         <div class="chip" id="chipColor"><span class="k">Колір</span><span class="v" id="pColor">—</span></div>
-        <div class="chip" id="chipSize"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
-        <div class="chip" id="chipComp"><span class="k">Склад</span><span class="v" id="pComp">—</span></div>
+        <div class="chip chip-narrow" id="chipSize"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
+        <div class="chip chip-wide" id="chipComp"><span class="k">Склад</span><span class="v" id="pComp">—</span></div>
         <div class="chip" id="chipPurpose"><span class="k">Призначення</span><span class="v" id="pPurpose">—</span></div>
         <div class="chip" id="chipCountry"><span class="k">Країна</span><span class="v" id="pCountry">—</span></div>
       </div>
@@ -1197,7 +1199,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v49';
+const APP_VERSION = '2026-07-09 · v50';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
