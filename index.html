@@ -102,9 +102,8 @@
   .row{ display:flex; gap:7px; font-size:13.5px; line-height:1.25; }
   .row .k{ color:var(--muted); flex:0 0 auto; }
   .row .v{ color:var(--ink); font-weight:600; }
-  .row.purpose .v{ color:var(--ink); }
-  .attrs{ display:flex; gap:8px; padding-top:1px; }
-  .chip{ flex:1; border:1px solid var(--line); border-radius:10px; padding:6px 11px; display:flex; flex-direction:column; gap:0; }
+  .attrs{ display:flex; flex-wrap:wrap; gap:8px; padding-top:1px; }
+  .chip{ flex:1 1 45%; min-width:110px; border:1px solid var(--line); border-radius:10px; padding:6px 11px; display:flex; flex-direction:column; gap:0; }
   .chip .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
   .chip .v{ font-size:15px; font-weight:700; }
   .extra{ border-top:1px solid var(--line); padding-top:7px; margin-top:1px; display:flex; flex-wrap:wrap; gap:2px 14px; }
@@ -477,13 +476,14 @@
       <div class="p-brand" id="pBrand" style="display:none"></div>
     </div>
     <div class="info-card">
-      <div class="row" id="rowSku"><span class="k">Артикул:</span><span class="v" id="pSku">—</span></div>
       <div class="row" id="rowSupplier"><span class="k">Постачальник:</span><span class="v" id="pSupplier">—</span></div>
-      <div class="row purpose" id="rowPurpose"><span class="k">Призначення:</span><span class="v" id="pPurpose">—</span></div>
-      <div class="row" id="rowComp"><span class="k">Склад:</span><span class="v" id="pComp">—</span></div>
       <div class="attrs" id="rowAttrs">
-        <div class="chip"><span class="k">Колір</span><span class="v" id="pColor">—</span></div>
-        <div class="chip"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
+        <div class="chip" id="chipSku"><span class="k">Артикул</span><span class="v" id="pSku">—</span></div>
+        <div class="chip" id="chipColor"><span class="k">Колір</span><span class="v" id="pColor">—</span></div>
+        <div class="chip" id="chipSize"><span class="k">Розмір</span><span class="v" id="pSize">—</span></div>
+        <div class="chip" id="chipComp"><span class="k">Склад</span><span class="v" id="pComp">—</span></div>
+        <div class="chip" id="chipPurpose"><span class="k">Призначення</span><span class="v" id="pPurpose">—</span></div>
+        <div class="chip" id="chipCountry"><span class="k">Країна</span><span class="v" id="pCountry">—</span></div>
       </div>
       <div class="extra" id="pExtra"></div>
     </div>
@@ -1057,18 +1057,18 @@ function render(p){
   $('pName').textContent=p.name||'—';
   const b=$('pBrand'); if(p.brand){ b.style.display=''; b.textContent=p.brand; } else b.style.display='none';
 
-  // показуємо лише ті рядки, де є дані (для «простих» товарів з 1С — нічого зайвого)
-  $('pSku').textContent=p.sku||'—';            rowShow('rowSku', p.sku);
+  // показуємо лише ті рядки/чипи, де є дані (для «простих» товарів з 1С — нічого зайвого)
   $('pSupplier').textContent=p.supplier||'';   rowShow('rowSupplier', p.supplier && p.supplier!==p.brand ? p.supplier : '');
-  $('pPurpose').textContent=p.purpose||'';     rowShow('rowPurpose', p.purpose);
-  $('pComp').textContent=p.composition||'';    rowShow('rowComp', p.composition);
-  $('pColor').textContent=p.color||'—';
-  $('pSize').textContent=p.size||'—';
-  $('rowAttrs').style.display=(p.color||p.size)?'flex':'none';
+  $('pSku').textContent=p.sku||'—';            rowShow('chipSku', p.sku);
+  $('pColor').textContent=p.color||'—';        rowShow('chipColor', p.color);
+  $('pSize').textContent=p.size||'—';          rowShow('chipSize', p.size);
+  $('pComp').textContent=p.composition||'—';   rowShow('chipComp', p.composition);
+  $('pPurpose').textContent=p.purpose||'—';    rowShow('chipPurpose', p.purpose);
+  $('pCountry').textContent=p.country||'—';    rowShow('chipCountry', p.country);
+  $('rowAttrs').style.display=(p.color||p.size||p.sku||p.composition||p.purpose||p.country)?'flex':'none';
 
-  // додаткові поля етикетки (країна/виготовлено/придатність/алкоголь)
+  // додаткові поля етикетки (виготовлено/придатність/алкоголь) — країна тепер окремим чипом вище
   const ex=[];
-  if(p.country)   ex.push(`<span class="e"><b>Країна:</b> ${esc(p.country)}</span>`);
   if(p.made)      ex.push(`<span class="e"><b>Виготовлено:</b> ${esc(p.made)}</span>`);
   if(p.shelfLife) ex.push(`<span class="e"><b>Придатність:</b> ${esc(p.shelfLife)}</span>`);
   if(Number(p.alco)>0) ex.push(`<span class="e"><b>Алкоголь:</b> так (18+)</span>`);
@@ -1197,7 +1197,7 @@ async function lookup(code){
 function resetIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ current=null; show('idle'); }, CONFIG.idleResetMs); }
 
 /* ===================== НАЛАШТУВАННЯ (магазин + джерело даних) ===================== */
-const APP_VERSION = '2026-07-09 · v48';
+const APP_VERSION = '2026-07-09 · v49';
 const SETTINGS_KEY = 'pricechecker.settings';
 let connOk = true;
 
